@@ -45,8 +45,7 @@ int end_threads = 0;
 int c_count = 0;
 
 // Data to pass to threads
-struct thread_data
-{
+struct thread_data {
 	int thread_id;
 	int change_addr;
 	int change_class;
@@ -58,13 +57,11 @@ struct thread_data
 
 struct thread_data thread_data_array[MAX_THREADS];
 
-void sig_catch(int sig)
-{
+void sig_catch(int sig) {
 	// Do something here someday
 }
 
-char* get_localtime()
-{
+char * get_localtime() {
 	// Time variables
 	time_t rawtime;
 	struct tm * timeinfo;
@@ -80,12 +77,10 @@ char* get_localtime()
 }
 
 // Open BT socket and return ID
-int get_bt_socket (int device)
-{
+int get_bt_socket (int device) {
 	int bt_socket;	
 	bt_socket = hci_open_dev(device);
-	if (bt_socket < 0)
-	{
+	if (bt_socket < 0) {
 		printf("Failed to initalize hci%i!\n", device);
 		exit(1);
 	}
@@ -93,8 +88,7 @@ int get_bt_socket (int device)
 }
 
 // Write class info
-int write_class (int bt_socket, int device, char *class)
-{
+int write_class (int bt_socket, int device, char *class) {
 	uint32_t cod = strtoul(class, NULL, 16);
 	if (hci_write_class_of_dev(bt_socket, cod, 2000) < 0)
 		fprintf(stderr,"Can't write local class of device on hci%d: %s (%d)\n", device, strerror(errno), errno);
@@ -103,22 +97,19 @@ int write_class (int bt_socket, int device, char *class)
 }
 
 // Select random name from list within range
-char* random_name (void)
-{	
+char * random_name (void) {	
 	return (device_name[(rand() % DEV_NAMES)]);	
 }
 
 // Generate random MAC address
 // Adapted from "SpoofTooph" by JP Dunning (.ronin)
-char* random_addr (void)
-{	
+char * random_addr (void) {	
 	char addr_part[3] = {0};
 	static char addr[18] = {0};
 	int i = 0;
 	
 	// Fill in the middle
-	while ( i < 14)
-	{
+	while ( i < 14) {
 		sprintf(addr_part, "%02x", (rand() % 254));	
 		addr[i++] = addr_part[0];
 		addr[i++] = addr_part[1];
@@ -133,8 +124,7 @@ char* random_addr (void)
 	return(addr);
 }
 
-void *thread_spoof(void *threadarg)
-{			
+void *thread_spoof(void *threadarg) {			
 	// Define variables from struct
 	int thread_id, change_addr, device, delay, loiter, change_class;
 	char *static_name;
@@ -183,8 +173,7 @@ void *thread_spoof(void *threadarg)
 	bt_socket = get_bt_socket(device);
 		
 	// Get MAC for reference
-	if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
-	{
+	if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0) {
 			fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
 			exit(1);
 	}
@@ -192,17 +181,13 @@ void *thread_spoof(void *threadarg)
 	// Original MAC stored to addr_ref
 	ba2str(&bdaddr, addr_ref);
 	
-	while (end_threads != 1)
-	{				
+	while (end_threads != 1) {				
 		// Do we want to spoof a new device?
-		if (new_dev)
-		{
+		if (new_dev) {
 			// Attempt to change address first, since it probably requires reset
-			if (change_addr)
-			{
+			if (change_addr) {
 				addr_buffer = random_addr();
-				if (cmd_bdaddr(device, bt_socket, addr_buffer) == 2)
-				{
+				if (cmd_bdaddr(device, bt_socket, addr_buffer) == 2) {
 					// This type of device needs to be manually restarted
 					hci_close_dev(bt_socket);
 					sleep(SHUTDOWN_WAIT);
@@ -220,8 +205,7 @@ void *thread_spoof(void *threadarg)
 				fprintf(stderr, "Can't change local name on hci%d: %s (%d)\n", device, strerror(errno), errno);
 				
 			// Change class
-			if (change_class)
-			{
+			if (change_class) {
 				// Generate a random class
 				int major = (rand() % 9);
 				int minor = (rand() % 6);
@@ -240,15 +224,12 @@ void *thread_spoof(void *threadarg)
 				// Put class into string
 				sprintf(class, "0x%02x%02x%02x", flag, major, minor);		
 				write_class(bt_socket, device, class);
-			}
-			else
-			{
+			} else {
 				strcpy(class, DEFAULT_CLASS);		
 			}	write_class(bt_socket, device, class);
 
 			// Make discoverable
-			if (ioctl(bt_socket, HCISETSCAN, (unsigned long) &dr) < 0)
-			{
+			if (ioctl(bt_socket, HCISETSCAN, (unsigned long) &dr) < 0) {
 				fprintf(stderr, "Can't set scan mode on hci%d: %s (%d)\n", device, strerror(errno), errno);
 				exit(1);
 			}
@@ -262,25 +243,20 @@ void *thread_spoof(void *threadarg)
 		sleep(delay);
 							
 		// Only check this once, to save time later
-		if (first_run)
-		{
+		if (first_run && change_class) {
 			// Verify MAC actually changed
-			if (!bacmp(&di.bdaddr, BDADDR_ANY))
-			{
-				if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
-				{
+			if (!bacmp(&di.bdaddr, BDADDR_ANY)) {
+				if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0) {
 					fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
 					exit(1);
 				}
-			}
-			else
+			} else
 				bacpy(&bdaddr, &di.bdaddr);	
 
 			// Test MAC to addr_buff
 			ba2str(&bdaddr, addr_buff);	
 				
-			if ((strcmp (addr_ref, addr_buff) == 0))
-			{
+			if ((strcmp (addr_ref, addr_buff) == 0)) {
 				printf("MAC on interface hci%i is not changing. Hardware is likely not compatible.\n", device);
 				printf("Disabling MAC changing for this interface. See README for more info.\n");
 				change_addr = 0;
@@ -291,21 +267,17 @@ void *thread_spoof(void *threadarg)
 		}
 		
 		// Determine if we will loiter a bit
-		if (loiter)
-		{
-			if (loiter_time == 0)
-			{
+		if (loiter) {
+			if (loiter_time == 0) {
 				// Not currently loitering, should we?
-				if ((rand() % MAX_LOITER) > (MAX_LOITER / LOITER_CHANCE))
-				{
+				if ((rand() % MAX_LOITER) > (MAX_LOITER / LOITER_CHANCE)) {
 					// How long to wait
 					loiter_time = (rand() % MAX_LOITER);
 					new_dev = 0;
-				}
-				else
+				} else
 					new_dev = 1;
-			}
-			else if (loiter_time >= 1)
+
+			} else if (loiter_time >= 1)
 				loiter_time--;
 		}		
 	}
@@ -320,8 +292,7 @@ void *thread_spoof(void *threadarg)
 	pthread_exit(NULL);
 }
 
-static void help(void)
-{
+static void help(void) {
 	printf("%s (v%s) by Tom Nardi \"MS3FGX\" (MS3FGX@gmail.com)\n", APPNAME, VERSION);
 	printf("----------------------------------------------------------------\n");
 	printf("Bluefog is a tool used to create phantom Bluetooth devices. It can\n"
@@ -358,8 +329,7 @@ static struct option main_options[] = {
 	{ 0, 0, 0, 0 }
 };
  
-int main(int argc, char *argv[])
-{		
+int main(int argc, char *argv[]) {		
 	// General variables
 	int t, opt;
 	
@@ -381,10 +351,8 @@ int main(int argc, char *argv[])
 	char *static_name = NULL;
 
 	// Process options
-	while ((opt=getopt_long(argc, argv, "+t:d:i:n:mchlv", main_options, NULL)) != EOF)
-	{
-		switch (opt)
-		{
+	while ((opt=getopt_long(argc, argv, "+t:d:i:n:mchlv", main_options, NULL)) != EOF) {
+		switch (opt) {
 		case 'i':
 			if (!strncasecmp(optarg, "hci", 3))
 				hci_devba(atoi(optarg + 3), &bdaddr);
@@ -393,16 +361,14 @@ int main(int argc, char *argv[])
 			break;		
 		case 't':
 			numthreads = atoi(optarg);		
-			if (numthreads > MAX_THREADS || numthreads <= 0)
-			{
+			if (numthreads > MAX_THREADS || numthreads <= 0) {
 				printf("Invalid number of threads. See README.\n");
 				exit(1);
 			}
 			break;
 		case 'd':
 			delay = atoi(optarg);		
-			if (delay > MAX_DELAY || delay <= 4)
-			{
+			if (delay > MAX_DELAY || delay <= 4) {
 				printf("Invalid delay value. See README.\n");
 				exit(1);
 			}
@@ -432,8 +398,7 @@ int main(int argc, char *argv[])
 	}
 	
 	// Check if we are running as root
-	if(getuid() != 0)
-	{
+	if(getuid() != 0) {
 		printf("You need to be root to run Bluefog!\n");
 		exit(1);
 	}
@@ -448,12 +413,9 @@ int main(int argc, char *argv[])
 	// Select hardware
 	printf("Bluetooth Interface: ");
 	ba2str(&bdaddr, addr);
-	if (!strcmp(addr, "00:00:00:00:00:00"))
-	{
+	if (!strcmp(addr, "00:00:00:00:00:00")) {
 		printf("Auto\n");
-	}
-	else
-	{
+	} else {
 		numthreads = 1;
 		device = hci_devid(addr);		
 		printf("hci%i\n", device);
@@ -461,14 +423,12 @@ int main(int argc, char *argv[])
 
 	// Static or random names
 	printf("Device Name: ");
-	if (static_name == NULL)
-	{
+	if (static_name == NULL) {
 		printf("Randomized\n");
 		
 		// Number of names loaded
 		printf("Available Names: %i\n", DEV_NAMES - 1);
-	}
-	else
+	} else
 		printf("Static (%s)\n", static_name);
 	
 	// Static or random addr
@@ -488,8 +448,7 @@ int main(int argc, char *argv[])
 	printf("Fogging started at [%s] on %i threads.\n", get_localtime(), numthreads);
 	printf("Hit Ctrl+C to end.\n");	
 	
-	for( t = 0; t < numthreads; t++ )
-	{
+	for( t = 0; t < numthreads; t++ ) {
 		// Thread ID number
 		thread_data_array[t].thread_id = t;
 		
