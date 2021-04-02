@@ -4,7 +4,7 @@
  *  Modified by JP Dunning (.ronin) for SpoofTooph
  *
  *  Additional modifications by Tom Nardi (MS3FGX) for Bluefog
- * 
+ *
  *  Released under the GPLv2, see "COPYING".
  */
 
@@ -25,8 +25,7 @@
 
 static int transient = 1;
 
-static int generic_reset_device(int dd)
-{
+static int generic_reset_device(int dd) {
 	bdaddr_t bdaddr;
 	int err;
 
@@ -43,15 +42,21 @@ typedef struct {
 } __attribute__ ((packed)) ericsson_write_bd_addr_cp;
 #define ERICSSON_WRITE_BD_ADDR_CP_SIZE 6
 
-static int ericsson_write_bd_addr(int dd, bdaddr_t *bdaddr)
-{
+static int ericsson_write_bd_addr(int dd, bdaddr_t *bdaddr) {
+	printf("ericcson 1\n");
+
 	struct hci_request rq;
 	ericsson_write_bd_addr_cp cp;
 
 	memset(&cp, 0, sizeof(cp));
+	printf("memet cp\n");
+
 	bacpy(&cp.bdaddr, bdaddr);
+	printf("bacpy\n");
 
 	memset(&rq, 0, sizeof(rq));
+	printf("memset rq\n");
+
 	rq.ogf    = OGF_VENDOR_CMD;
 	rq.ocf    = OCF_ERICSSON_WRITE_BD_ADDR;
 	rq.cparam = &cp;
@@ -59,8 +64,12 @@ static int ericsson_write_bd_addr(int dd, bdaddr_t *bdaddr)
 	rq.rparam = NULL;
 	rq.rlen   = 0;
 
+	printf("set rq");
+
 	if (hci_send_req(dd, &rq, 1000) < 0)
 		return -1;
+
+	printf("sent req\n");
 
 	return 0;
 }
@@ -73,8 +82,7 @@ typedef struct {
 } __attribute__ ((packed)) ericsson_store_in_flash_cp;
 #define ERICSSON_STORE_IN_FLASH_CP_SIZE 255
 
-static int ericsson_store_in_flash(int dd, uint8_t user_id, uint8_t flash_length, uint8_t *flash_data)
-{
+static int ericsson_store_in_flash(int dd, uint8_t user_id, uint8_t flash_length, uint8_t *flash_data) {
 	struct hci_request rq;
 	ericsson_store_in_flash_cp cp;
 
@@ -98,8 +106,7 @@ static int ericsson_store_in_flash(int dd, uint8_t user_id, uint8_t flash_length
 	return 0;
 }
 
-static int csr_write_bd_addr(int dd, bdaddr_t *bdaddr)
-{
+static int csr_write_bd_addr(int dd, bdaddr_t *bdaddr) {
 	unsigned char cmd[] = { 0x02, 0x00, 0x0c, 0x00, 0x11, 0x47, 0x03, 0x70,
 				0x00, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -148,15 +155,14 @@ static int csr_write_bd_addr(int dd, bdaddr_t *bdaddr)
 	return 0;
 }
 
-static int csr_reset_device(int dd)
-{
+static int csr_reset_device(int dd) {
 	unsigned char cmd[] = { 0x02, 0x00, 0x09, 0x00,
 				0x00, 0x00, 0x01, 0x40, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 	unsigned char cp[254], rp[254];
 	struct hci_request rq;
-	
+
 	if (transient)
 		cmd[6] = 0x02;
 
@@ -172,7 +178,7 @@ static int csr_reset_device(int dd)
 	rq.clen   = sizeof(cmd) + 1;
 	rq.rparam = rp;
 	rq.rlen   = sizeof(rp);
-	
+
 	if (hci_send_req(dd, &rq, 2000) < 0)
 		return -1;
 	return 0;
@@ -184,8 +190,7 @@ typedef struct {
 } __attribute__ ((packed)) ti_write_bd_addr_cp;
 #define TI_WRITE_BD_ADDR_CP_SIZE 6
 
-static int ti_write_bd_addr(int dd, bdaddr_t *bdaddr)
-{
+static int ti_write_bd_addr(int dd, bdaddr_t *bdaddr) {
 	struct hci_request rq;
 	ti_write_bd_addr_cp cp;
 
@@ -212,8 +217,7 @@ typedef struct {
 } __attribute__ ((packed)) bcm_write_bd_addr_cp;
 #define BCM_WRITE_BD_ADDR_CP_SIZE 6
 
-static int bcm_write_bd_addr(int dd, bdaddr_t *bdaddr)
-{
+static int bcm_write_bd_addr(int dd, bdaddr_t *bdaddr) {
 	struct hci_request rq;
 	bcm_write_bd_addr_cp cp;
 
@@ -240,8 +244,7 @@ typedef struct {
 } __attribute__ ((packed)) zeevo_write_bd_addr_cp;
 #define ZEEVO_WRITE_BD_ADDR_CP_SIZE 6
 
-static int zeevo_write_bd_addr(int dd, bdaddr_t *bdaddr)
-{
+static int zeevo_write_bd_addr(int dd, bdaddr_t *bdaddr) {
 	struct hci_request rq;
 	zeevo_write_bd_addr_cp cp;
 
@@ -262,8 +265,7 @@ static int zeevo_write_bd_addr(int dd, bdaddr_t *bdaddr)
 	return 0;
 }
 
-static int st_write_bd_addr(int dd, bdaddr_t *bdaddr)
-{
+static int st_write_bd_addr(int dd, bdaddr_t *bdaddr) {
 	return ericsson_store_in_flash(dd, 0xfe, 6, (uint8_t *) bdaddr);
 }
 
@@ -279,11 +281,11 @@ static struct {
 	{ 18,		zeevo_write_bd_addr,	NULL			},
 	{ 48,		st_write_bd_addr,	generic_reset_device	},
 	{ 57,		ericsson_write_bd_addr,	generic_reset_device	},
+	{ 93,		st_write_bd_addr,	generic_reset_device	},
 	{ 65535,	NULL,			NULL			},
 };
 
-static int cmd_bdaddr(int dev, int dd, char * new_addr)
-{
+static int cmd_bdaddr(int dev, int dd, char * new_addr) {
   struct hci_dev_info di;
 	struct hci_version ver;
 	bdaddr_t bdaddr;
@@ -293,7 +295,7 @@ static int cmd_bdaddr(int dev, int dd, char * new_addr)
 	bacpy(&bdaddr, BDADDR_ANY);
 
 	optind = 0;
-	
+
 	if (hci_devinfo(dev, &di) < 0) {
 		fprintf(stderr, "Can't get device info for hci%d: %s (%d)\n",
 						dev, strerror(errno), errno);
@@ -307,6 +309,12 @@ static int cmd_bdaddr(int dev, int dd, char * new_addr)
 		hci_close_dev(dd);
 		exit(1);
 	}
+
+
+	printf("Vendor: ");
+	for (int i = 0; i < sizeof(ver); i++)
+		printf("%02x", ((char *)(void *)&ver)[i]);
+	printf("\n");
 
 	if (!bacmp(&di.bdaddr, BDADDR_ANY)) {
 		if (hci_read_bd_addr(dd, &bdaddr, 1000) < 0) {
@@ -325,28 +333,33 @@ static int cmd_bdaddr(int dev, int dd, char * new_addr)
 		hci_close_dev(dd);
 		return(0);
 	}
-	
+
 	for (i = 0; vendor[i].compid != 65535; i++)
 		if (ver.manufacturer == vendor[i].compid) {
 			ba2oui(&bdaddr, oui);
 			ba2str(&bdaddr, addr);
-			
+
+			printf("addr: %s\n", addr);
+			printf("compid: %d, man: %d\n", vendor[i].compid, ver.manufacturer);
+
 			if (vendor[i].write_bd_addr(dd, &bdaddr) < 0) {
 				fprintf(stderr, "Can't write new address\n");
 				hci_close_dev(dd);
 				return(1);
 			}
-		
+
 			if (vendor[i].reset_device(dd) < 0)
 				return(2);
 			else
 				ioctl(dd, HCIDEVRESET, dev);
 
-			// Everything worked
+			printf("Everything worked\n");
 			return(0);
 		}
 
-	hci_close_dev(dd);
+
+
+	//hci_close_dev(dd);
 
 	printf("\n");
 	fprintf(stderr, "Unsupported manufacturer\n");
